@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Shaz — SA Tiling Co</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1b2a; --surface: #132233; --surface2: #1a2e42; --surface3: #0f2030;
+  --accent: #38bdf8; --accent2: #0ea5e9; --green: #22c55e; --gold: #f59e0b;
+  --text: #e8f4fd; --muted: #7fb3cc; --border: #1e3a52;
+  --shaz-bg: #0f3626; --user-bg: #1a2e42;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+body::before { content:''; position:fixed; top:-30%; right:-15%; width:500px; height:500px; background:radial-gradient(circle,rgba(56,189,248,0.05) 0%,transparent 65%); pointer-events:none; animation:drift 12s ease-in-out infinite; }
+@keyframes drift { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,20px)} }
+@keyframes slideUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes blink { 0%,60%,100%{transform:translateY(0);opacity:1} 30%{transform:translateY(-5px);opacity:0.5} }
+@keyframes ripple { 0%{transform:scale(1);opacity:0.6} 100%{transform:scale(2.8);opacity:0} }
+
+/* HEADER */
+.header { background:linear-gradient(135deg,#091420,#132233); border-bottom:1px solid var(--border); padding:.9rem 1.1rem; display:flex; align-items:center; gap:.85rem; flex-shrink:0; z-index:20; }
+.avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#0f3626,#166534); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:1.25rem; position:relative; flex-shrink:0; box-shadow:0 0 18px rgba(34,197,94,0.25); }
+.avatar-dot { position:absolute; bottom:0; right:0; width:12px; height:12px; background:var(--green); border-radius:50%; border:2px solid var(--bg); }
+.avatar-dot::after { content:''; position:absolute; inset:-2px; border-radius:50%; background:var(--green); animation:ripple 2.5s ease-out infinite; }
+.header-text h1 { font-family:'DM Serif Display',serif; font-size:1.1rem; font-weight:400; line-height:1.2; }
+.header-text p { font-size:.72rem; color:var(--muted); margin-top:1px; }
+.header-right { margin-left:auto; display:flex; align-items:center; gap:.6rem; }
+.status-pill { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.3); color:var(--green); font-size:.67rem; padding:.22rem .6rem; border-radius:20px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+.after-pill { background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); color:var(--gold); }
+.notes-btn { background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); color:var(--gold); width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:.9rem; transition:all .2s; position:relative; }
+.notes-btn:hover { background:rgba(245,158,11,0.2); }
+.badge { position:absolute; top:-4px; right:-4px; background:var(--gold); color:#1a1200; width:16px; height:16px; border-radius:50%; font-size:.6rem; font-weight:700; display:none; align-items:center; justify-content:center; }
+.badge.show { display:flex; }
+
+/* INFO BAR */
+.info-bar { background:var(--surface3); border-bottom:1px solid var(--border); padding:.55rem 1.1rem; display:flex; gap:1.2rem; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+.info-bar::-webkit-scrollbar{display:none}
+.info-pill { display:flex; align-items:center; gap:.35rem; white-space:nowrap; font-size:.7rem; color:var(--muted); }
+
+/* AFTER HOURS BANNER */
+.ah-banner { background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.05)); border-bottom:1px solid rgba(245,158,11,0.2); padding:.55rem 1.1rem; font-size:.75rem; color:var(--gold); display:none; align-items:center; gap:.5rem; flex-shrink:0; }
+.ah-banner.show{display:flex}
+
+/* CHAT */
+.chat-area { flex:1; overflow-y:auto; padding:1rem 1.1rem; display:flex; flex-direction:column; gap:.75rem; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.chat-area::-webkit-scrollbar{width:3px}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.msg-row { display:flex; gap:.55rem; animation:slideUp .28s ease forwards; }
+.msg-row.user{flex-direction:row-reverse}
+.msg-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.8rem; flex-shrink:0; margin-top:3px; }
+.msg-row.shaz .msg-icon { background:linear-gradient(135deg,#0f3626,#166534); border:1px solid rgba(34,197,94,0.4); }
+.msg-row.user .msg-icon { background:var(--surface2); border:1px solid rgba(56,189,248,0.3); }
+.bubble { padding:.7rem .95rem; border-radius:14px; font-size:.875rem; line-height:1.55; max-width:calc(100% - 50px); }
+.msg-row.shaz .bubble { background:var(--shaz-bg); border:1px solid rgba(34,197,94,0.2); border-radius:4px 14px 14px 14px; color:#d1fae5; }
+.msg-row.user .bubble { background:var(--user-bg); border:1px solid rgba(56,189,248,0.18); border-radius:14px 4px 14px 14px; }
+.bubble-time { font-size:.62rem; color:var(--muted); margin-top:.25rem; opacity:.6; }
+.msg-row.user .bubble-time{text-align:right}
+.divider { text-align:center; font-size:.67rem; color:var(--muted); font-family:monospace; letter-spacing:.1em; opacity:.5; padding:.2rem 0; }
+
+/* TYPING */
+.typing-row{display:flex;gap:.55rem}
+.typing-bubble { background:var(--shaz-bg); border:1px solid rgba(34,197,94,0.2); border-radius:4px 14px 14px 14px; padding:.75rem 1rem; display:flex; gap:5px; align-items:center; }
+.td { width:7px; height:7px; background:var(--green); border-radius:50%; animation:blink 1.3s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.2s} .td:nth-child(3){animation-delay:.4s}
+
+/* BOOKING CARD */
+.booking-card { background:#12253a; border:1px solid rgba(167,139,250,0.25); border-radius:12px; padding:1rem; margin-top:.5rem; font-size:.82rem; }
+.booking-card h4 { color:#a78bfa; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; margin-bottom:.6rem; font-family:monospace; }
+.brow { display:flex; justify-content:space-between; padding:.3rem 0; border-bottom:1px solid var(--border); color:var(--muted); font-size:.8rem; }
+.brow:last-of-type{border:none}
+.brow span:last-child{color:var(--text);text-align:right}
+.book-email-btn { margin-top:.7rem; width:100%; background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white; border:none; border-radius:8px; padding:.55rem; font-size:.8rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity .2s; }
+.book-email-btn:hover{opacity:.9}
+
+/* QUICK REPLIES */
+.quick-replies { display:flex; flex-wrap:wrap; gap:.45rem; padding:.6rem 1.1rem; flex-shrink:0; }
+.chip { background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:.42rem .85rem; border-radius:20px; font-size:.76rem; cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; transition:all .18s; }
+.chip:hover,.chip:active { background:rgba(56,189,248,0.1); border-color:var(--accent); color:var(--accent); }
+
+/* INPUT */
+.input-area { background:var(--surface); border-top:1px solid var(--border); padding:.75rem 1.1rem; display:flex; gap:.65rem; align-items:flex-end; flex-shrink:0; z-index:20; }
+.input-wrap { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:22px; display:flex; align-items:flex-end; padding:.55rem .85rem; transition:border-color .2s; }
+.input-wrap:focus-within{border-color:rgba(56,189,248,0.45)}
+textarea { background:none; border:none; outline:none; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.875rem; resize:none; flex:1; line-height:1.4; max-height:90px; min-height:21px; }
+textarea::placeholder{color:var(--muted)}
+.send-btn { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,#0ea5e9,#0284c7); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 3px 12px rgba(56,189,248,0.3); transition:all .18s; }
+.send-btn:hover{transform:scale(1.07)} .send-btn:active{transform:scale(.93)} .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.send-btn svg{width:17px;height:17px;fill:white}
+
+/* OVERLAY SYSTEM */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:300; display:none; align-items:flex-end; }
+.overlay.open{display:flex}
+.panel { background:var(--surface); border-top:1px solid var(--border); border-radius:20px 20px 0 0; width:100%; max-height:75vh; display:flex; flex-direction:column; animation:slideUp .25s ease; }
+.panel-hdr { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem .75rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+.panel-hdr h2 { font-family:'DM Serif Display',serif; font-size:1.05rem; font-weight:400; color:var(--gold); }
+.panel-close { background:var(--surface2); border:1px solid var(--border); color:var(--muted); border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:.9rem; display:flex; align-items:center; justify-content:center; }
+.panel-body{overflow-y:auto;padding:1rem 1.25rem;flex:1}
+
+/* NOTE CARDS */
+.note-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:.85rem; margin-bottom:.7rem; }
+.note-meta { display:flex; gap:.5rem; align-items:center; margin-bottom:.5rem; flex-wrap:wrap; }
+.note-time { font-size:.65rem; color:var(--muted); font-family:monospace; }
+.tag { padding:.12rem .5rem; border-radius:10px; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.tag-quote{background:rgba(56,189,248,0.15);color:var(--accent)}
+.tag-builder{background:rgba(245,158,11,0.15);color:var(--gold)}
+.tag-callback{background:rgba(34,197,94,0.15);color:var(--green)}
+.tag-general{background:rgba(148,163,184,0.12);color:#94a3b8}
+.tag-booking{background:rgba(167,139,250,0.15);color:#a78bfa}
+.note-row{display:flex;gap:.5rem;padding:.2rem 0}
+.nl{color:var(--muted);min-width:65px;font-size:.75rem}
+.nv{color:var(--text);font-size:.78rem}
+.email-note-btn { margin-top:.6rem; width:100%; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); color:var(--accent); padding:.45rem; border-radius:7px; font-size:.75rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .18s; }
+.email-note-btn:hover{background:rgba(56,189,248,0.15)}
+.empty-state{text-align:center;color:var(--muted);font-size:.83rem;padding:2.5rem 0;font-style:italic}
+
+/* EMAIL PANEL */
+.email-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:500; display:none; align-items:flex-end; }
+.email-overlay.open{display:flex}
+.email-panel { background:var(--surface); border-top:1px solid var(--border); border-radius:20px 20px 0 0; width:100%; max-height:88vh; display:flex; flex-direction:column; animation:slideUp .25s ease; }
+.email-hdr { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem .75rem; border-bottom:1px solid var(--border); flex-shrink:0; }
+.email-hdr h2 { font-family:'DM Serif Display',serif; font-size:1rem; font-weight:400; color:var(--accent); }
+.email-body{padding:1rem 1.25rem;overflow-y:auto;flex:1}
+.ef{margin-bottom:.85rem}
+.ef label { display:block; font-size:.7rem; color:var(--muted); font-family:monospace; text-transform:uppercase; letter-spacing:.08em; margin-bottom:.3rem; }
+.ef input,.ef textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:.83rem; padding:.6rem .8rem; resize:none; outline:none; transition:border-color .2s; }
+.ef input:focus,.ef textarea:focus{border-color:rgba(56,189,248,0.4)}
+.email-footer { padding:.75rem 1.25rem; border-top:1px solid var(--border); display:flex; gap:.6rem; }
+.btn-primary { flex:1; background:linear-gradient(135deg,var(--accent2),#0284c7); color:white; border:none; border-radius:9px; padding:.65rem; font-size:.83rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:opacity .2s; }
+.btn-primary:hover{opacity:.9}
+.btn-sec { background:var(--surface2); border:1px solid var(--border); color:var(--muted); border-radius:9px; padding:.65rem 1rem; font-size:.83rem; cursor:pointer; font-family:'DM Sans',sans-serif; }
+
+/* TOAST */
+.toast { position:fixed; bottom:85px; left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:.65rem 1.1rem; font-size:.8rem; z-index:600; white-space:nowrap; opacity:0; transition:opacity .3s; pointer-events:none; }
+.toast.show{opacity:1}
+
+@media(min-width:580px){
+  body{max-width:500px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="avatar">🎙️<div class="avatar-dot"></div></div>
+  <div class="header-text">
+    <h1>Shaz</h1>
+    <p>SA Tiling Co · AI Receptionist</p>
+  </div>
+  <div class="header-right">
+    <span class="status-pill" id="statusPill">● Online</span>
+    <button class="notes-btn" onclick="openNotes()">📋<span class="badge" id="badge">0</span></button>
+  </div>
+</div>
+
+<div class="info-bar">
+  <div class="info-pill">📞 0466 654 322</div>
+  <div class="info-pill">📋 Lic. 310132</div>
+  <div class="info-pill">📍 Adelaide & surrounds</div>
+  <div class="info-pill">✉️ info@satilingco.com.au</div>
+  <div class="info-pill">🌐 satilingco.com.au</div>
+</div>
+
+<div class="ah-banner" id="ahBanner">🌙 <strong>After hours</strong> — Shaz is still here. Musti will follow up first thing tomorrow.</div>
+
+<div class="chat-area" id="chat">
+  <div class="divider" id="dateLine"></div>
+</div>
+
+<div class="quick-replies" id="chips">
+  <button class="chip" onclick="q('I\'d like to get a quote')">💬 Get a quote</button>
+  <button class="chip" onclick="q('I\'m an existing client checking on my job')">🔧 My job</button>
+  <button class="chip" onclick="q('I\'m a builder looking to partner')">🏗️ Builder enquiry</button>
+  <button class="chip" onclick="q('Can I book a site visit?')">📅 Book a visit</button>
+  <button class="chip" onclick="q('What services do you offer?')">❓ Services</button>
+</div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="inp" placeholder="Type a message…" rows="1" onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn" onclick="send()">
+    <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+  </button>
+</div>
+
+<!-- NOTES OVERLAY -->
+<div class="overlay" id="notesOv" onclick="bgClose(event,'notesOv')">
+  <div class="panel">
+    <div class="panel-hdr">
+      <h2>📋 Call Notes</h2>
+      <button class="panel-close" onclick="close_('notesOv')">✕</button>
+    </div>
+    <div class="panel-body" id="notesList">
+      <div class="empty-state">No calls logged yet.<br>Notes appear after each conversation.</div>
+    </div>
+  </div>
+</div>
+
+<!-- EMAIL OVERLAY -->
+<div class="email-overlay" id="emailOv" onclick="bgClose(event,'emailOv')">
+  <div class="email-panel">
+    <div class="email-hdr">
+      <h2>📧 Email to Musti</h2>
+      <button class="panel-close" onclick="close_('emailOv')">✕</button>
+    </div>
+    <div class="email-body">
+      <div class="ef"><label>To</label><input id="eTo" value="info@satilingco.com.au"></div>
+      <div class="ef"><label>Subject</label><input id="eSubj"></div>
+      <div class="ef"><label>Message</label><textarea id="eBody" rows="10" style="min-height:160px"></textarea></div>
+    </div>
+    <div class="email-footer">
+      <button class="btn-sec" onclick="close_('emailOv')">Cancel</button>
+      <button class="btn-primary" onclick="sendEmail()">Send Email</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const BIZ = {
+  phone:'0466 654 322', email:'info@satilingco.com.au',
+  website:'satilingco.com.au', instagram:'@satilingco', licence:'310132',
+  hours:{open:7,close:18}
+};
+
+const SYS = `You are Shaz, the friendly AI receptionist for SA Tiling Co, a premium Adelaide tiling and bathroom renovation business owned by Musti (Mustafa Khoshchance).
+
+BUSINESS INFO:
+Phone: ${BIZ.phone} | Email: ${BIZ.email} | Website: ${BIZ.website} | Instagram: ${BIZ.instagram}
+Licence: ${BIZ.licence} | Areas: Adelaide metro, hills, northern and southern suburbs, surrounds
+Services: floor tiling, wall tiling, bathroom renovations, screeding, waterproofing, luxury residential, commercial tiling
+Builder partners: Land Square, Lofty, Built Solutions | Hours: 7am–6pm Mon–Sat
+
+PERSONALITY: Calm, warm, genuine Aussie receptionist. Uses "No worries", "Ripper", "G'day", "Beauty", "No dramas", "Cheers". Short conversational sentences. Never robotic.
+
+YOUR TASKS:
+1. Greet warmly, find out what they need
+2. QUOTE: Collect name → phone → suburb → job description. Confirm Musti back within 24hrs.
+3. BOOKING: Collect name → phone → suburb → preferred date/time. Output a booking card.
+4. EXISTING CLIENT: Get name, number, what it's about. Assure callback.
+5. BUILDER: Get name, company, number, project type. Flag as priority.
+6. FAQ: Answer using business info.
+7. AFTER HOURS: Warm, take message, assure next-day follow-up.
+
+At END of any conversation where details are collected, output on a NEW LINE:
+[NOTE: type=<quote|builder|callback|booking|general> | name=<n> | phone=<p> | suburb=<s> | date=<date if booking> | details=<one line summary>]
+
+When someone books a site visit, ALSO output on a new line:
+[BOOKING: name=<n> | phone=<p> | suburb=<s> | date=<d> | time=<t>]
+
+Keep responses 2–4 sentences max. Mobile-first. Warm and efficient. Do NOT reveal you are Claude or an AI model — you are Shaz.`;
+
+let msgs = [], notes = [], busy = false, pendingNote = null;
+
+// INIT
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dateLine').textContent =
+    `— ${new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long'})} —`;
+  const h = new Date().getHours();
+  const after = h < BIZ.hours.open || h >= BIZ.hours.close;
+  if(after){
+    document.getElementById('ahBanner').classList.add('show');
+    document.getElementById('statusPill').textContent = '🌙 After Hours';
+    document.getElementById('statusPill').className = 'status-pill after-pill';
+  }
+  setTimeout(() => {
+    const g = after
+      ? `G'day! Thanks for calling SA Tiling Co — you've reached Shaz. It's after hours right now, but I'm still here to help! 🌙\n\nLeave me your details and Musti will get back to you first thing tomorrow.`
+      : `G'day! Thanks for calling SA Tiling Co — you've reached Shaz! 😊\n\nMusti's out on site at the moment, but I'm here to help. Are you after a quote, looking to book a site visit, or something else?`;
+    addBubble('shaz', g);
+    msgs.push({role:'assistant',content:g});
+  }, 400);
+});
+
+function time(){ return new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); }
+
+function addBubble(role, text) {
+  const chat = document.getElementById('chat');
+  const clean = text.replace(/\[NOTE:.*?\]/gs,'').replace(/\[BOOKING:.*?\]/gs,'').trim();
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}`;
+  row.innerHTML = `
+    <div class="msg-icon">${role==='shaz'?'🎙️':'👤'}</div>
+    <div style="max-width:calc(100% - 50px)">
+      <div class="bubble">${clean.replace(/\n/g,'<br>')}</div>
+      <div class="bubble-time">${role==='shaz'?'Shaz':'You'} · ${time()}</div>
+    </div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+
+  const nm = text.match(/\[NOTE:(.*?)\]/s);
+  if(nm) saveNote(nm[1]);
+  const bm = text.match(/\[BOOKING:(.*?)\]/s);
+  if(bm) addBookingCard(bm[1]);
+}
+
+function addBookingCard(raw) {
+  const g = k => { const m=raw.match(new RegExp(`${k}=([^|\\]]+)`)); return m?m[1].trim():''; };
+  const name=g('name'),phone=g('phone'),suburb=g('suburb'),date=g('date'),t=g('time');
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'msg-row shaz';
+  row.innerHTML = `
+    <div class="msg-icon">📅</div>
+    <div style="max-width:calc(100% - 50px)">
+      <div class="booking-card">
+        <h4>📅 Site Visit Request</h4>
+        ${name?`<div class="brow"><span>Name</span><span>${name}</span></div>`:''}
+        ${phone?`<div class="brow"><span>Phone</span><span>${phone}</span></div>`:''}
+        ${suburb?`<div class="brow"><span>Suburb</span><span>${suburb}</span></div>`:''}
+        ${date?`<div class="brow"><span>Date</span><span>${date}</span></div>`:''}
+        ${t?`<div class="brow"><span>Time</span><span>${t}</span></div>`:''}
+        <button class="book-email-btn" onclick="openEmail({type:'booking',name:'${name}',phone:'${phone}',suburb:'${suburb}',date:'${date}',details:'Site visit — ${suburb}'})">📧 Email to Musti</button>
+      </div>
+      <div class="bubble-time">Booking · ${time()}</div>
+    </div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showTyping(){
+  const chat=document.getElementById('chat');
+  const el=document.createElement('div');
+  el.id='typing'; el.className='typing-row';
+  el.innerHTML=`<div class="msg-icon" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0f3626,#166534);border:1px solid rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;margin-top:3px">🎙️</div><div class="typing-bubble"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  chat.appendChild(el); chat.scrollTop=chat.scrollHeight;
+}
+function hideTyping(){ document.getElementById('typing')?.remove(); }
+
+function resize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,90)+'px'; }
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }
+function q(txt){ document.getElementById('inp').value=txt; send(); }
+
+async function send(){
+  const inp=document.getElementById('inp');
+  const txt=inp.value.trim();
+  if(!txt||busy) return;
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('chips').style.display='none';
+  addBubble('user',txt);
+  msgs.push({role:'user',content:txt});
+  busy=true; document.getElementById('sendBtn').disabled=true; showTyping();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,messages:msgs})
+    });
+    const data = await res.json();
+    hideTyping();
+    if(data.content?.[0]?.text){
+      const reply=data.content[0].text;
+      msgs.push({role:'assistant',content:reply});
+      addBubble('shaz',reply);
+    } else { addBubble('shaz',"Sorry, something went wrong. Try again in a sec!"); }
+  } catch { hideTyping(); addBubble('shaz',"Oops — lost connection. Give it another try!"); }
+  busy=false; document.getElementById('sendBtn').disabled=false;
+}
+
+// NOTES
+function saveNote(raw){
+  const g = k => { const m=raw.match(new RegExp(`${k}=([^|\\]]+)`)); return m?m[1].trim():''; };
+  notes.unshift({
+    type:g('type')||'general', name:g('name'), phone:g('phone'),
+    suburb:g('suburb'), date:g('date'), details:g('details'),
+    time:new Date().toLocaleString('en-AU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+  });
+  const b=document.getElementById('badge');
+  b.textContent=notes.length; b.classList.add('show');
+}
+
+function renderNotes(){
+  const list=document.getElementById('notesList');
+  if(!notes.length){ list.innerHTML='<div class="empty-state">No calls logged yet.<br>Notes appear after each conversation.</div>'; return; }
+  list.innerHTML=notes.map((n,i)=>`
+    <div class="note-card">
+      <div class="note-meta"><span class="note-time">${n.time}</span><span class="tag tag-${n.type}">${n.type}</span></div>
+      ${n.name?`<div class="note-row"><span class="nl">Name</span><span class="nv">${n.name}</span></div>`:''}
+      ${n.phone?`<div class="note-row"><span class="nl">Phone</span><span class="nv">${n.phone}</span></div>`:''}
+      ${n.suburb?`<div class="note-row"><span class="nl">Suburb</span><span class="nv">${n.suburb}</span></div>`:''}
+      ${n.date?`<div class="note-row"><span class="nl">Date</span><span class="nv">${n.date}</span></div>`:''}
+      ${n.details?`<div class="note-row"><span class="nl">Notes</span><span class="nv">${n.details}</span></div>`:''}
+      <button class="email-note-btn" onclick="openEmail(notes[${i}])">📧 Email summary to Musti</button>
+    </div>`).join('');
+}
+
+function openNotes(){ renderNotes(); document.getElementById('notesOv').classList.add('open'); }
+
+// EMAIL
+function openEmail(n){
+  pendingNote=n;
+  const typeLabel = n.type==='quote'?'New Quote Request':n.type==='builder'?'Builder Enquiry':n.type==='booking'?'Site Visit Request':'Callback Request';
+  document.getElementById('eTo').value=BIZ.email;
+  document.getElementById('eSubj').value=`SA Tiling Co — ${typeLabel}${n.name?' — '+n.name:''}`;
+  document.getElementById('eBody').value=`Hi Musti,\n\nShaz here — new ${n.type} came in. Here are the details:\n\nName: ${n.name||'Not provided'}\nPhone: ${n.phone||'Not provided'}\nSuburb: ${n.suburb||'Not provided'}\n${n.date?'Requested date: '+n.date+'\n':''}Notes: ${n.details||'No additional details'}\n\nTime logged: ${n.time||new Date().toLocaleString('en-AU')}\n\n—\nShaz | SA Tiling Co AI Receptionist\n${BIZ.phone} | ${BIZ.email}`;
+  close_('notesOv');
+  document.getElementById('emailOv').classList.add('open');
+}
+
+function sendEmail(){
+  const to=document.getElementById('eTo').value;
+  const subj=document.getElementById('eSubj').value;
+  const body=document.getElementById('eBody').value;
+  window.open(`mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`,'_blank');
+  close_('emailOv');
+  toast('✅ Email opened in your mail app');
+}
+
+function close_(id){ document.getElementById(id).classList.remove('open'); }
+function bgClose(e,id){ if(e.target.id===id) close_(id); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
+
+if(window.innerWidth>580) document.getElementById('inp').focus();
+</script>
+</body>
+</html>
