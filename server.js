@@ -6,7 +6,7 @@ app.use(express.json());
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const conversations = {};
 
-const SYSTEM = `You are Shaz, the friendly AI receptionist for SA Tiling Co, a premium Adelaide tiling and bathroom renovation business owned by Musti. Phone: 0466 654 322. Email: info@satilingco.com.au. Licence: 310132. Services: floor tiling, wall tiling, bathroom renovations, screeding, waterproofing, luxury residential and commercial tiling. Areas: all of Adelaide and surrounds. Hours: 7am-6pm Mon-Sat. Be warm, calm, friendly Aussie. Use "No worries", "Ripper", "G\'day", "Beauty". Keep responses under 2 sentences - this is a phone call.`;
+const SYSTEM = `You are Shaz, the friendly AI receptionist for SA Tiling Co, a premium Adelaide tiling and bathroom renovation business owned by Musti. Phone: 0466 654 322. Email: info@satilingco.com.au. Licence: 310132. Services: floor tiling, wall tiling, bathroom renovations, screeding, waterproofing, luxury residential and commercial tiling. Areas: all of Adelaide and surrounds. Hours: 7am-6pm Mon-Sat. Be warm, calm, friendly Aussie. Use No worries, Ripper, G day, Beauty. Keep responses under 2 sentences - this is a phone call. Do not use any special characters, asterisks, or symbols in your response.`;
 
 async function getShazResponse(callSid, userMessage) {
   if (!conversations[callSid]) conversations[callSid] = [];
@@ -24,22 +24,53 @@ async function getShazResponse(callSid, userMessage) {
 
 app.post('/voice', async (req, res) => {
   const callSid = req.body.CallSid;
-  const greeting = "G\'day! Thanks for calling SA Tiling Co, you\'ve reached Shaz! Musti\'s out on site but I\'m here to help. What can I do for you today?";
+  const greeting = "G day! Thanks for calling S A Tiling Co, you have reached Shaz! Musti is out on site but I am here to help. What can I do for you today?";
   conversations[callSid] = [{ role: 'assistant', content: greeting }];
   res.type('text/xml');
-  res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Olivia-Neural" language="en-AU">${greeting}</Say><Gather input="speech" action="/respond" method="POST" speechTimeout="auto" language="en-AU"></Gather></Response>`);
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Olivia-Neural" language="en-AU">${greeting}</Say>
+  <Gather input="speech" action="/respond" method="POST" speechTimeout="3" language="en-AU" enhanced="true">
+  </Gather>
+  <Redirect method="POST">/voice</Redirect>
+</Response>`);
 });
 
 app.post('/respond', async (req, res) => {
   const callSid = req.body.CallSid;
   const speech = req.body.SpeechResult || '';
+  const confidence = parseFloat(req.body.Confidence || '0');
+
+  if (!speech || confidence < 0.3) {
+    res.type('text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Olivia-Neural" language="en-AU">Sorry, I did not quite catch that. Could you say that again please?</Say>
+  <Gather input="speech" action="/respond" method="POST" speechTimeout="3" language="en-AU" enhanced="true">
+  </Gather>
+</Response>`);
+    return;
+  }
+
   let reply;
-  try { reply = await getShazResponse(callSid, speech); }
-  catch(e) { reply = "Sorry, can you repeat that for me?"; }
+  try { 
+    reply = await getShazResponse(callSid, speech);
+    reply = reply.replace(/[*_#&<>]/g, '');
+  } catch(e) { 
+    reply = "No worries, give me just a moment."; 
+  }
+
   res.type('text/xml');
-  res.send(`<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Olivia-Neural" language="en-AU">${reply}</Say><Gather input="speech" action="/respond" method="POST" speechTimeout="auto" language="en-AU"></Gather></Response>`);
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Olivia-Neural" language="en-AU">${reply}</Say>
+  <Gather input="speech" action="/respond" method="POST" speechTimeout="3" language="en-AU" enhanced="true">
+  </Gather>
+  <Say voice="Polly.Olivia-Neural" language="en-AU">Are you still there? No worries, give us a call back anytime on 0466 654 322. Cheers!</Say>
+</Response>`);
 });
 
 app.get('/', (req, res) => res.send('Shaz is online'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Shaz running on port ' + PORT));
+
