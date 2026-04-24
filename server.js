@@ -24,7 +24,7 @@ async function getShazResponse(callSid, userMessage) {
 
 app.post('/voice', async (req, res) => {
   const callSid = req.body.CallSid;
-  const greeting = "G day! Thanks for calling. You have reached Shaz at S A Tiling. How can I help you today?"
+  const greeting = "Hi there! Thanks for calling. You have reached Shaz at S A Tiling. How can I help you today?"
   conversations[callSid] = [{ role: 'assistant', content: greeting }];
   res.type('text/xml');
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
