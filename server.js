@@ -24,7 +24,7 @@ Your job:
 - For quote requests: get their name, best phone number, suburb, and brief description of the job
 - For existing clients: get their name, number, and what it is regarding
 - For builder enquiries: get their name, company, number, and project details
-- Answer questions about services, areas covered, and licensing
+- Answer questions about services, areas covered, and bookings
 - Always confirm you will pass their details on and someone will be in touch
 
 Important rules:
